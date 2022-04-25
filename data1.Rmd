@@ -1,0 +1,419 @@
+---
+title: "302W team project"
+author: "Yijun Shen"
+date: "10/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(plotly)
+library(gapminder)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(readxl)
+library(cowplot)
+library(ggthemes)
+library(lubridate)
+police_data<-read.csv("fatal-police-shootings-data (1).csv")
+```
+
+1. data cleaning
+
+```{r}
+Clean_data <-
+  na.omit(police_data)
+levels(Clean_data$gender)[levels(Clean_data$gender)== ""] = "Unrecorded"
+levels(Clean_data$armed)[levels(Clean_data$armed)== ""] = "Unrecorded"
+levels(Clean_data$race)[levels(Clean_data$race)== ""] = "Unrecorded"
+levels(Clean_data$flee)[levels(Clean_data$flee)== ""] = "Unrecorded"
+levels(Clean_data$name)[levels(Clean_data$name)== ""] = "Unrecorded"
+Clean_data
+```
+
+2. plot
+
+
+```{r}
+cleanest_data<-Clean_data%>%
+  filter(is.na(race)==F & is.na(gender)==F)%>%
+  group_by(race, gender)%>%
+  count()%>%
+  summarise(total=sum(n))%>%
+  arrange(desc(total))
+  
+cleanest_data
+
+ggplot(cleanest_data, aes(x=race, y = total))+
+  geom_col(aes(fill=gender))
+```
+
+3. plot
+```{r}
+cleanest_data<-Clean_data%>%
+  filter(is.na(race)==F & is.na(armed)==F)%>%
+  group_by(race, armed)%>%
+  count()%>%
+  summarise(total=sum(n))%>%
+  arrange(desc(total))
+  
+cleanest_data
+
+ggplot(cleanest_data, aes(x=race, y = total))+
+  geom_col(aes(fill=armed))
+
+```
+```{r}
+unarmed_data<-Clean_data%>%
+  group_by(armed)%>%
+  filter(armed=="unarmed")
+names(unarmed_data)[5] <- 'armed_or_not'
+#unarmed_data
+armed_data<-Clean_data%>%
+  group_by(armed)%>%
+  filter(armed!="unarmed")
+armed_data$armed_or_not <- "armed"
+new_armed_data<-armed_data%>%
+  subset(select = -c(armed) )%>%
+  select(id,name,date,manner_of_death,armed_or_not,age,gender,race,city,state,signs_of_mental_illness,threat_level,flee,body_camera,longitude,latitude,is_geocoding_exact)
+#new_armed_data
+new_armed_or_not_data<-bind_rows(unarmed_data,new_armed_data)
+
+new_clean_armed_or_not_data<-new_armed_or_not_data%>%
+  filter(is.na(race)==F & is.na(armed_or_not)==F &is.na(gender)==F)%>%
+  group_by(race, armed_or_not,gender)%>%
+  count()%>%
+  summarise(total=sum(n))%>%
+  arrange(desc(total))
+new_clean_armed_or_not_data
+
+ggplot(new_clean_armed_or_not_data, aes(x=race, y=total))+
+  geom_col(aes(fill=armed_or_not))
+
+new_unarmed_data<-unarmed_data%>%
+  filter(is.na(race)==F & is.na(armed_or_not)==F &is.na(gender)==F)%>%
+  group_by(race, armed_or_not,gender)%>%
+  count()%>%
+  summarise(total=sum(n))%>%
+  arrange(desc(total))
+P<-ggplot(new_unarmed_data, aes(x=race, y=total, fill=gender))+
+    geom_col()+ylab("the total of Unarmed population")
+P
+y<-ggplot(new_unarmed_data, aes(x=gender, y=total, fill=race))+
+    geom_boxplot()+ylab("the total of Unarmed population")
+y
+#clean_armed_data<-rbind(new_armed_data,unarmed_data)
+#clean_armed_data
+#cleanest_armeddata<-armed_data%>%
+#  filter(is.na(race)==F & is.na(armed)==F & is.na(gender)==F)%>%
+#  group_by(race, armed)%>%
+ # count()%>%
+ # summarise(total=sum(n))%>%
+ # arrange(desc(total))
+#cleanest_armeddata
+#cleanest_unarmeddata<-unarmed_data%>%
+ # filter(is.na(race)==F & is.na(gender)==F)%>%
+ # group_by(race, unarmed)%>%
+ # count()%>%
+ # summarise(total=sum(n))%>%
+ # arrange(desc(total))
+ #cleanest_unarmeddata 
+#new_data<-rbind(cleanest_armeddata,cleanest_unarmeddata)
+#ggplot(new_data, aes(x=race, y = total))+
+#  geom_col(aes(fill=armed))
+#new_data<-right_join(unarmed_data, Clean_data,by="id")
+#new_data
+#new_data%>%
+ # group_by(armed,race.x,race.y,unarmed)%>%
+  #count()%>%
+  #summarise(total=sum(n))%>%
+  #arrange(desc(total))
+#new_data
+#write.csv(unarmed_data,"/Users/yijunshen/Desktop/QTM\ 302W/group\ project/unarmed_data.csv ", row.names = FALSE)
+#write.csv(armed_data,"/Users/yijunshen/Desktop/QTM\ 302W/group\ project/armed_data.csv ", row.names = FALSE)
+ # separate_rows(armed,sep='unarmed', remove = TRUE,convert = TRUE)%>%
+  #count()%>%
+  #summarise(total=sum(n))%>%
+  #arrange(desc(total))
+
+#armed_data
+
+#
+
+```
+By age
+```{r}
+age_data<-Clean_data%>%
+  group_by(age)%>%
+  tally(name='total_age')
+age_data
+
+ggplot(data = age_data, aes(x = age, y = total_age)) +
+  geom_line(stat = "identity", color = "black") +
+  geom_point(stat = "identity", color = "blue") +
+  geom_area(fill = "red", alpha = 0.5) +
+  labs(title = "Victims by Age ",
+                y = "Number of Victims", x = "Age of Victims") +
+                theme_minimal_hgrid() +
+                theme(axis.text = element_text(face = "bold"),
+                 plot.title = element_text(size = 18, face = "bold"),
+                 axis.title = element_text(face = "bold", size = 14))
+```
+
+
+```{r}
+chisq.test(Clean_data$race,Clean_data$gender,correct=FALSE)
+chisq.test(Clean_data$race,Clean_data$age,correct=FALSE)
+chisq.test(Clean_data$race,Clean_data$body_camera,correct=FALSE)
+chisq.test(Clean_data$race,Clean_data$state,correct=FALSE)
+chisq.test(Clean_data$race,Clean_data$flee,correct=FALSE)
+```
+by race
+```{r}
+race_data<-Clean_data%>%
+  group_by(race)%>%
+  tally(name='total_race')
+race_data
+Race_of_victims<-c("Unrecorded","Asian","Black","Hispanic","Native American", "Others","White")
+Total_victims<-c(529,96,1459,1019,84,46,2768)
+new_race_data<- data.frame(Race_of_victims,Total_victims)
+new_race_data
+
+ggplot(data = new_race_data, aes(x = reorder(Race_of_victims, desc(Total_victims)), y = Total_victims)) +
+  geom_bar(aes(fill = Race_of_victims), stat = "identity", color = "black") +
+  labs(title = "Total Victims By Race", y = "Number of Victims", x = "Race of Victims",fill = "Race:") +
+  geom_text(aes(label = Total_victims),
+      hjust = ifelse(new_race_data$Race_of_victims == "White",1.2,-0.3)) +
+  coord_flip() +
+  theme_cowplot() +
+  theme(legend.title = element_text(face = "bold", size = 13),
+                 axis.title.x = element_text(face = "bold", size = 13),
+                 plot.title = element_text(face = "bold", size = 13),
+                 axis.title.y = element_text(face = "bold", size = 13))
+```
+race and age
+```{r}
+Clean_data$date = as.Date(Clean_data$date, format = "%Y-%m-%d")
+Clean_data
+Clean_data[is.na(Clean_data$age) == TRUE, "age"] = round(mean(Clean_data$age, na.rm = TRUE))
+
+ggplot(Clean_data, aes(x=race, y = age))+
+  geom_boxplot(aes(fill = race)) +
+  geom_violin(fill = "violet", alpha = 0.1) +
+  labs(title = "Distribution of Victims of Different Races by Age:",
+                x = "Race of Victims", y = "Age of Victims", fill = "Race:") +
+  #geom_text(data = aggregate(age ~ race, Clean_data$race, mean),
+                  #  aes(label = paste0("Avg.- ",{round(Clean_data$age)}))) +
+  theme(axis.title = element_text(face = "bold", size = 13),
+                 axis.text.x = element_text(face = "bold", size = 9),
+                 plot.title = element_text(face = "bold", size = 18),
+                 legend.position = "none",
+                 axis.text.y = element_text(face = "bold", size = 10))
+
+```
+
+```{r}
+Clean_data%>%
+  pivot_wider(names_from = "armed")
+```
+dude
+```{r}
+Clean_data$age_cat[Clean_data$age >= 0 & Clean_data$age<= 10] = '0 - 10'
+Clean_data$age_cat[Clean_data$age >10 & Clean_data$age<= 20] = '10-20'
+Clean_data$age_cat[Clean_data$age >20 & Clean_data$age<= 30] = '20-30'
+Clean_data$age_cat[Clean_data$age >30 & Clean_data$age<= 40] = '30-40'
+Clean_data$age_cat[Clean_data$age >40 & Clean_data$age<= 50] = '40-50'
+Clean_data$age_cat[Clean_data$age >50 & Clean_data$age<= 60] = '50-60'
+Clean_data$age_cat[Clean_data$age >60 & Clean_data$age<= 70] = '60-70'
+Clean_data$age_cat[Clean_data$age >70] = '>70'
+age_data<-Clean_data%>%
+  filter(is.na(age)==F &is.na(age_cat)==F)%>%
+  group_by(age_cat,gender)%>%
+  count()%>%
+  summarise(total=sum(n))%>%
+  arrange(desc(total))
+  
+age_data
+
+ggplot(age_data, aes(x=age_cat, y = total))+
+  geom_col(aes(fill=gender))
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+race_data<-Clean_data%>%
+  group_by(race,gender)%>%
+  filter(is.na(race)==F &is.na(gender)==F)%>%
+  count()%>%
+  summarise(total=sum(n))%>%
+  arrange(desc(total))
+race_data
+
+age_advance<-Clean_data%>%
+  group_by(race,age)%>%
+  count()%>%
+  summarise(total=sum(n))%>%
+  arrange(desc(total))
+```
+
+
+```{r}
+body_data<-Clean_data%>%
+  group_by(race, body_camera)%>%
+  count()%>%
+  summarise(total=sum(n))%>%
+  arrange(desc(total))
+
+body_data
+
+flee_data<-Clean_data%>%
+  group_by(race, flee)%>%
+  count()%>%
+  summarise(total=sum(n))%>%
+  arrange(desc(total))
+flee_data
+```
+
+
+```{r}
+us_shootings_state_group = Clean_data %>% 
+  group_by(state) %>% 
+  tally(name = "Total_Count")
+
+us_shootings_state_group
+ggplot(data = us_shootings_state_group) +
+  geom_bar(aes(x = reorder(state, Total_Count), y = Total_Count, fill = state),
+                    stat = "identity", color = "black") +
+  labs(title = "Total Shooting Related to States :",
+                y = "Number of Shootings", x = "States", fill = "States:") +
+  coord_flip() +
+  theme_minimal_vgrid() +
+  theme(plot.margin = margin(.5,0.2,0.2,.5,"cm"),
+                 axis.text.x = element_text(angle = 45, hjust = 1),
+                 axis.title = element_text(face = "bold"),
+                 plot.title = element_text(size = 19, face = "bold"),
+                 legend.title = element_text(face = "bold", size = 15))
+```
+
+
+```{r}
+#https://www.kaggle.com/mrod17/police-killings-visualizations/notebook
+#install.packages("gdata")
+library(dplyr)
+library(ggplot2)
+library(gdata)
+library(scales)
+library(stringr)
+library(gridExtra)
+library(maps)
+police_killings <- Clean_data
+median_household_income <- read.csv("MedianHouseholdIncome2015.csv")
+percentage_below_poverty <- read.csv("PercentagePeopleBelowPovertyLevel.csv")
+share_race_by_city <- read.csv("ShareRaceByCity.csv")
+#population_data <- read.csv("../input/data-to-add/populationData.csv")
+#poverty_rates <- read.csv("../input/data-to-add/poverty_rate.csv")
+```
+
+
+```{r}
+fig<-function(x,y){
+    options(repr.plot.width = x, repr.plot.height = y)
+    }
+options(warn=-1)
+police_killings$date <- as.character(police_killings$date)
+police_killings$date <- str_sub(police_killings$date, -2,-1)
+police_killings$date <- as.factor(police_killings$date)
+
+police_killings_grouped <- police_killings %>%
+  group_by(date, state) %>%
+  summarise(killings = n())
+
+#police_killings_grouped <- left_join(police_killings_grouped, population_data,
+                                     #by = c("state" = "Abbreviations"))
+
+median_household_income$Median.Income <- as.character(median_household_income$Median.Income)
+median_household_income$Median.Income <- as.numeric(median_household_income$Median.Income)
+
+median_household_income_state <- median_household_income %>%
+  group_by(Geographic.Area) %>%
+  summarise(Median.Income = median(Median.Income, na.rm = T))
+
+police_killings_grouped <- left_join(police_killings_grouped, median_household_income_state,
+                                     by = c("state" = "Geographic.Area"))
+
+share_race_by_city$share_black <- as.character(share_race_by_city$share_black)
+share_race_by_city$share_hispanic <- as.character(share_race_by_city$share_hispanic)
+
+share_race_by_city$share_black <- as.numeric(share_race_by_city$share_black)
+share_race_by_city$share_hispanic <- as.numeric(share_race_by_city$share_hispanic)
+
+share_race_by_state <- share_race_by_city %>%
+      group_by(Geographic.area) %>%
+      summarise(perc_black = mean(share_black, na.rm = T), perc_hisp = mean(share_hispanic, na.rm = T))
+
+police_killings_grouped <- left_join(police_killings_grouped, share_race_by_state,
+                                     by = c("state" = "Geographic.area"))
+
+police_killings_grouped$perc_minority <- police_killings_grouped$perc_black + police_killings_grouped$perc_hisp
+
+police_killings_grouped$perc_minority <- police_killings_grouped$perc_minority/100
+
+percentage_below_poverty$poverty_rate <- as.character(percentage_below_poverty$poverty_rate)
+
+percentage_below_poverty$poverty_rate <- as.double(percentage_below_poverty$poverty_rate)
+
+percentage_below_poverty <- percentage_below_poverty %>%
+        group_by(Geographic.Area) %>%
+        summarise(poverty_rate = mean(poverty_rate, na.rm = T))
+
+police_killings_grouped <- left_join(police_killings_grouped, percentage_below_poverty,
+                                     by = c("state" = "Geographic.Area"))
+
+police_killings_grouped$per_capita_killings <- police_killings_grouped$killings
+police_killings_grouped$per_capita_killings[police_killings_grouped$date == "15"] <- (police_killings_grouped$killings[police_killings_grouped$date == "15"]/police_killings_grouped$POPESTIMATE2015[police_killings_grouped$date == "15"]) *100000
+police_killings_grouped$per_capita_killings[police_killings_grouped$date == "16"] <- (police_killings_grouped$killings[police_killings_grouped$date == "16"]/police_killings_grouped$POPESTIMATE2015[police_killings_grouped$date == "16"]) *100000
+police_killings_grouped$per_capita_killings[police_killings_grouped$date == "17"] <- (police_killings_grouped$killings[police_killings_grouped$date == "17"]/police_killings_grouped$POPESTIMATE2015[police_killings_grouped$date == "17"]) *100000
+police_killings_grouped$per_capita_killings[police_killings_grouped$date == "18"] <- (police_killings_grouped$killings[police_killings_grouped$date == "18"]/police_killings_grouped$POPESTIMATE2015[police_killings_grouped$date == "18"]) *100000
+
+Pacific <- c("CA", "HI", "AK", "WA", "OR", "NV", "AZ")
+Frontier <- c("ID", "MT", "UT", "OK", "TX", "KS", "NM", "CO","WY")
+Midwest <- c("ND", "SD", "NE", "IA", "IL", "IN", "WI", "MI", "OH", "MN", "MO")
+South <- c("KY", "TN", "WV", "FL", "GA", "MS", "AL", "LA", "AR", "VA", "NC", "SC")
+NorthEast <- c("NY", "DC", "CT", "DE", "ME", "MD", "MA", "NH", "NJ", "PA", "RI", "VT")
+
+
+police_killings_grouped$Region[police_killings_grouped$state %in% Pacific] <- 'Pacific'
+police_killings_grouped$Region[police_killings_grouped$state %in% Frontier] <- 'Frontier'
+police_killings_grouped$Region[police_killings_grouped$state %in% Midwest] <- 'Midwest'
+police_killings_grouped$Region[police_killings_grouped$state %in% South] <- 'South'
+police_killings_grouped$Region[police_killings_grouped$state %in% NorthEast] <- 'North East'
+police_killings_grouped$Region <- as.factor(police_killings_grouped$Region)
+
+all_states <- map_data("state")
+
+MidwestNames <- tolower(state.name[match(Midwest,state.abb)])
+SouthNames <- tolower(state.name[match(South,state.abb)])
+FrontierNames <- tolower(state.name[match(Frontier,state.abb)])
+PacificNames <- tolower(state.name[match(Pacific,state.abb)])
+NorthEastNames <- tolower(state.name[match(NorthEast,state.abb)])
+
+levels(police_killings_grouped$date)[1] <- "2015"
+levels(police_killings_grouped$date)[2] <- "2016"
+levels(police_killings_grouped$date)[3] <- "2017"
+levels(police_killings_grouped$date)[4] <- "2018"
+
+#poverty_rates$State <- state.abb[match(poverty_rates$State,state.name)]
+
+#police_killings_grouped <- left_join(police_killings_grouped, poverty_rates, 
+                                 #    by = c("state" = "State"))
+
+police_killings_grouped$poverty_rate[police_killings_grouped$state == "DC"] <- 19.0
+
+police_killings_grouped$date <- as.character(police_killings_grouped$date)
+
+police_killings_grouped$date <- as.numeric(police_killings_grouped$date)
+```
+
